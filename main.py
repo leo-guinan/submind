@@ -1,5 +1,5 @@
 # step 1: Look in database for all actively running subminds.
-
+from decouple import config
 # step 2: For each submind, check for related thoughts that were recorded after the last time the submind checked for them.
 
 # step 3: Based on current status of submind + new thoughts, figure out what you should focus on for this action cycle.
@@ -29,7 +29,7 @@ def name_for_collection_relationship(base, local_cls, referred_cls, constraint):
 
 
 # Replace 'database_url' with your actual database connection URL
-database_url = "postgresql://thoughts_owner:cxYU8TpgO9Wd@ep-noisy-firefly-a5bez5i9.us-east-2.aws.neon.tech/thoughts?sslmode=require"
+database_url = config('DATABASE_URL')
 engine = create_engine(database_url)
 
 Session = sessionmaker(bind=engine)
