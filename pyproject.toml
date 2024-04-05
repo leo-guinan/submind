@@ -6,7 +6,7 @@ authors = ["Leo Guinan <leo.guinan@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">3.12,<3.13"
+python = ">3.10,<3.13"
 psycopg2-binary = "^2.9.9"
 sqlalchemy = "^2.0.29"
 langchain = "^0.1.14"
