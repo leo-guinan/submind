@@ -216,7 +216,7 @@ def find_related_thoughts(submind, session):
     for thought, score in res:
         print(f"The thought is: {thought}")
         print(score)
-        if score < 0.7:
+        if score < 0.85:
             continue
         # check if the thought is already included in the submind's mind
         if thought.metadata['thoughtId'] in map(lambda x: x.id, submind.relatedThoughts):
