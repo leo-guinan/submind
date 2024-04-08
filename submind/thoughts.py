@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime
 
@@ -13,7 +14,7 @@ from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from sqlalchemy import and_, or_
 
-from submind.documents import get_document, update_document, create_document
+from submind.documents import get_document, update_document, create_document, create_report
 from submind.models import Thought, Question, Answer
 
 functions = [
@@ -103,13 +104,16 @@ def pull_new_answers(session, submind):
             output_parser = StrOutputParser()
             chain = prompt | model | output_parser
             combined_answer = chain.invoke(
-                {"question": question.question.content, "snippets": "\n".join(map(lambda x: x['snippet'], data['results']))})
+                {"question": question.question.content,
+                 "snippets": "\n".join(map(lambda x: x['snippet'], data['results']))})
 
             print(combined_answer)
             question.content = combined_answer
             session.add(question)
             session.commit()
             new_answers.append(f'{question.question.content}\n{combined_answer}')
+            # rate limit is for every 60 seconds, so wait slightly longer than that to make sure.
+            time.sleep(65)
     except Exception as e:
         # hit the rate limit most likely. Just print the message and move on,
         # because the next one will be picked up the following run.
@@ -117,11 +121,40 @@ def pull_new_answers(session, submind):
     return new_answers
 
 
+def final_run(session, submind, document, mind, ):
+    PROMPT_TEMPLATE = """You are a powerful submind that allows your human to externalize their thought process.
+    
+   Here is what your name is: {submind_name}
+    And a description: {submind_description}
+    
+    Here was the document they created to give you your directives: {submind_document}
+    
+    Here is what you've figured out so far: {submind_mind}
+    
+    After learning everything you could, you now need to compile a report that contains your final findings.    
+    
+    
+    """
+
+    model = ChatOpenAI(model="gpt-4", openai_api_key=config("OPENAI_API_KEY"))
+    prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+    output_parser = StrOutputParser()
+    chain = prompt | model | output_parser
+    report = chain.invoke({"submind_name": submind.name, "submind_description": submind.description,
+                           "submind_document": document,
+                           "submind_mind": mind, "related_thoughts": "\n".join(
+            map(lambda x: x.content, submind.relatedThoughts))})
+    print(report)
+    create_report(submind.ownerId, report, str(uuid.uuid4()))
+    submind.status = "COMPLETED"
+    session.add(submind)
+    session.commit()
+
+
 def find_related_thoughts(submind, session):
     new_answers = pull_new_answers(session, submind)
     human_answers = session.query(Answer).filter(Answer.submindId == submind.id, Answer.source == "user").all()
     combined_answers = new_answers + list(map(lambda x: f'{x.question.content}: {x.content}', human_answers))
-
 
     pc = Pinecone(api_key=config("PINECONE_API_KEY"))
     embeddings = OpenAIEmbeddings(openai_api_key=config("OPENAI_API_KEY"))
@@ -156,6 +189,10 @@ def find_related_thoughts(submind, session):
     fetched_mind = get_document(submind.mindUUID, submind.ownerId)
     if not fetched_mind:
         fetched_mind = create_document(submind.ownerId, "", str(uuid.uuid4()))
+
+    if submind.lastRun and datetime.now() > submind.lastRun:
+        final_run(session, submind, fetched_document['content'], fetched_mind['content'])
+        return
 
     things_to_lookup = chain.invoke({"submind_name": submind.name, "submind_description": submind.description,
                                      "submind_document": fetched_document['content'],
@@ -211,13 +248,16 @@ def find_related_thoughts(submind, session):
                                         "submind_document": fetched_document['content'],
                                         "submind_mind": fetched_mind['content'], "related_thoughts": "\n".join(
             map(lambda x: x.content, submind.relatedThoughts))})
-    print(updated_mind)
 
     fetched_mind['content'] = updated_mind
     submind.mindUUID = fetched_mind['uuid']
     session.add(submind)
     session.commit()
     update_document(submind.mindUUID, updated_mind)
+
+    questions = session.query(Question).filter(Question.submindId == submind.id).all()
+    existing_answers = session.query(Answer).filter(Answer.submindId == submind.id).all()
+    open_questions = list(filter(lambda x: not any(map(lambda y: y.questionId == x.id, existing_answers)), questions))
 
     QUESTIONS_MIND_PROMPT = """You are a powerful submind that allows your human to externalize their thought process.
         Here is what your name is: {submind_name}
@@ -228,8 +268,11 @@ def find_related_thoughts(submind, session):
         Here is your current state : {submind_mind}
 
         Here are the user's related thoughts that you've uncovered: {related_thoughts}
+        
+        Here are the currently open questions that haven't been answered yet: {open_questions}
 
-        Based on this information, what questions would you like answered? And should those questions be answered by the user or by research?
+        Based on this information, what questions would you like answered? Don't ask any questions that are duplicates of the currently open questions.
+         And should those questions be answered by the user or by research?
         
 
 
@@ -237,11 +280,16 @@ def find_related_thoughts(submind, session):
     question_prompt = ChatPromptTemplate.from_template(QUESTIONS_MIND_PROMPT)
 
     question_chain = question_prompt | model.bind(function_call={"name": "identify_questions"},
-                                         functions=functions) | JsonKeyOutputFunctionsParser(key_name="questions")
-    response = question_chain.invoke({"submind_name": submind.name, "submind_description": submind.description,
-                                      "submind_document": fetched_document['content'],
-                                      "submind_mind": fetched_mind['content'], "related_thoughts": "\n".join(
-            map(lambda x: x.content, submind.relatedThoughts))})
+                                                  functions=functions) | JsonKeyOutputFunctionsParser(
+        key_name="questions")
+    response = question_chain.invoke({
+        "submind_name": submind.name,
+        "submind_description": submind.description,
+        "submind_document": fetched_document['content'],
+        "submind_mind": fetched_mind['content'],
+        "related_thoughts": "\n".join(map(lambda x: x.content, submind.relatedThoughts)),
+        "open_questions": "\n".join(map(lambda x: x.content, open_questions))
+    })
 
     answerable_questions = []
 
@@ -260,7 +308,6 @@ def find_related_thoughts(submind, session):
         session.commit()
         if new_question.forInternet:
             answerable_questions.append(new_question)
-    print(response)
 
     for answerable in answerable_questions:
         url = f'{config("API_URL")}podcast/find/'
@@ -275,8 +322,7 @@ def find_related_thoughts(submind, session):
 
         # Parse the JSON response
         data = response.json()
-        print("question", query['query'])
-        print("answer", data)
+
         saved_answer_request = Answer()
         saved_answer_request.questionId = answerable.id
         saved_answer_request.requestId = data['query_id']
@@ -286,5 +332,3 @@ def find_related_thoughts(submind, session):
         saved_answer_request.submindId = submind.id
         session.add(saved_answer_request)
         session.commit()
-
-
