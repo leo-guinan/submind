@@ -200,7 +200,12 @@ def complete_research(session, research):
     values = get_document(submind.valuesUUID, submind.ownerId)
     founder = get_document(submind.founderUUID, submind.ownerId)
 
-    research_content = "\n".join(map(lambda x: f"{x.content}\n{x.answer.content}", research.questions))
+    print("Questions: ", research.questions)
+
+    print("Answers: ", research.questions[0].answers)
+
+    research_content = map(lambda question: f"{question.content}:" + "\n".join(map(lambda answer: answer.content, question.answers)), research.questions)
+
 
     response = chain.invoke(
         {"founder": founder['content'],
