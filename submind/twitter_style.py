@@ -9,6 +9,7 @@ from langchain_openai import ChatOpenAI
 
 from submind.documents import get_or_create_document
 from submind.models import Like, Thought
+from submind.research import start_research
 
 functions = [
     {
@@ -105,8 +106,8 @@ def twitter_style_submind_run(submind, session):
         })
         print(report['responseType'])
         if report['responseType'] == "research":
-            # Do research
-            pass
+            start_research(submind, thought, report['message'], session)
+
         elif report['responseType'] == "question":
             # Ask a question
             new_thought = Thought()
@@ -121,8 +122,8 @@ def twitter_style_submind_run(submind, session):
             session.commit()
 
         elif report['responseType'] == "action":
-            # Take an action
             pass
+            # Take an action
 
         submind.pendingThoughts.remove(thought)
         session.add(submind)

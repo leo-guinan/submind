@@ -27,6 +27,12 @@ pending_thoughts_table = Table('_SubmindPendingThoughts', Base.metadata,
                                 Column('B', Integer, ForeignKey('Thought.id'), primary_key=True)
                                 )
 
+question_research_table = Table('_QuestionToResearch', Base.metadata,
+                                Column('A', Integer, ForeignKey('Question.id'), primary_key=True),
+                                Column('B', Integer, ForeignKey('Research.id'), primary_key=True)
+                                )
+
+
 
 
 class Account(Base):
@@ -369,7 +375,8 @@ class Question(Base):
     submindId = Column(Integer, ForeignKey('Submind.id'))
     submind = relationship("Submind", back_populates="questions")
     context = relationship("Context")
-
+    research = relationship("Research", secondary=question_research_table, back_populates="questions")
+    answers = relationship("Answer", back_populates="question")
 class Answer(Base):
     __tablename__ = 'Answer'
 
@@ -383,6 +390,8 @@ class Answer(Base):
     submindId = Column(Integer, ForeignKey('Submind.id'))
     submind = relationship("Submind")
     question = relationship("Question")
+    researchId = Column(Integer, ForeignKey('Research.id'))
+    research = relationship("Research")
 
 
 class Like(Base):
@@ -395,3 +404,33 @@ class Like(Base):
 
     submind = relationship("Submind")
     thought = relationship("Thought")
+
+# model Research {
+#   id          Int      @id @default(autoincrement())
+#   createdAt   DateTime @default(now())
+#   updatedAt   DateTime @updatedAt
+#   name        String
+#   description String?
+#   submind    Submind  @relation(fields: [submindId], references: [id])
+#   submindId  Int
+#   respondTo  Thought  @relation(fields: [respondToId], references: [id])
+#   respondToId Int
+#   questions   Question[]
+#   answers     Answer[]
+# }
+class Research(Base):
+    __tablename__ = 'Research'
+
+    id = Column(Integer, primary_key=True)
+    createdAt = Column(DateTime)
+    updatedAt = Column(DateTime)
+    name = Column(String)
+    description = Column(String)
+    submindId = Column(Integer, ForeignKey('Submind.id'))
+    submind = relationship("Submind")
+    respondToId = Column(Integer, ForeignKey('Thought.id'))
+    respondTo = relationship("Thought")
+    questions = relationship("Question", secondary=question_research_table, back_populates="research")
+    answers = relationship("Answer", back_populates="research")
+    response = Column(String)
+    completed = Column(Boolean, default=False)

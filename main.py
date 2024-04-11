@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from submind.models import Submind, SubmindSchedule
+from submind.new_answers import pull_new_answers
+from submind.research import update_research
 from submind.twitter_style import twitter_style_submind_run
 
 class Schedule(str, Enum):
@@ -23,7 +25,12 @@ def main(schedule: Optional[Schedule] = typer.Option(Schedule.daily)):
 
     Session = sessionmaker(bind=engine)
     session = Session()
+    subminds = session.query(Submind).all()
 
+    for submind in subminds:
+        pull_new_answers(session, submind)
+
+    update_research(session)
     # Now you can query for all Submind records with 'ACTIVE' status
 
     if schedule == Schedule.daily:
