@@ -1,3 +1,5 @@
+import enum
+
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ForeignKey, Enum, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -19,6 +21,11 @@ related_thoughts_table = Table('_SubmindRelatedThoughts', Base.metadata,
                                  Column('A', Integer, ForeignKey('Submind.id'), primary_key=True),
                                  Column('B', Integer, ForeignKey('Thought.id'), primary_key=True)
                                  )
+
+pending_thoughts_table = Table('_SubmindPendingThoughts', Base.metadata,
+                                Column('A', Integer, ForeignKey('Submind.id'), primary_key=True),
+                                Column('B', Integer, ForeignKey('Thought.id'), primary_key=True)
+                                )
 
 
 
@@ -161,11 +168,15 @@ class Thought(Base):
     contextId = Column(Integer, ForeignKey('Context.id'))
     uuid = Column(String)
     submindId = Column(Integer, ForeignKey('Submind.id'))
+    parentId = Column(Integer, ForeignKey('Thought.id'))
+
+    parent = relationship("Thought", remote_side=[id], backref="children")
     owner = relationship("User", back_populates="thoughts")
     context = relationship("Context", back_populates="thoughts")
     intents = relationship("Intent", secondary=intent_thought_table, back_populates="thoughts")
     submind = relationship("Submind", back_populates="thoughts")
     relatedSubminds = relationship("Submind", secondary=related_thoughts_table, back_populates="relatedThoughts")
+    pendingSubminds = relationship("Submind", secondary=pending_thoughts_table, back_populates="pendingThoughts")
 
 class Tool(Base):
     __tablename__ = 'tool'
@@ -310,6 +321,13 @@ class Product(Base):
     prices = relationship("Price", back_populates="product")
 
 
+class SubmindSchedule(enum.Enum):
+    DAILY = 'DAILY'
+    EIGHT_HOUR = 'EIGHT_HOUR'
+    FOUR_HOUR = 'FOUR_HOUR'
+    INSTANT = 'INSTANT'
+
+
 class Submind(Base):
     __tablename__ = 'Submind'
 
@@ -327,8 +345,12 @@ class Submind(Base):
     owner = relationship("User", back_populates="subminds")
     context = relationship("Context")
     mindUUID = Column(String)
+    founderUUID = Column(String)
+    valuesUUID = Column(String)
+    schedule = Column(Enum(SubmindSchedule))
     thoughts = relationship("Thought", back_populates="submind")
     relatedThoughts = relationship("Thought", secondary=related_thoughts_table, back_populates="relatedSubminds")
+    pendingThoughts = relationship("Thought", secondary=pending_thoughts_table, back_populates="pendingSubminds")
 
 
 
@@ -363,3 +385,13 @@ class Answer(Base):
     question = relationship("Question")
 
 
+class Like(Base):
+    __tablename__ = 'Like'
+
+    id = Column(Integer, primary_key=True)
+    createdAt = Column(DateTime)
+    submindId = Column(String, ForeignKey('Submind.id'))
+    thoughtId = Column(Integer, ForeignKey('Thought.id'))
+
+    submind = relationship("Submind")
+    thought = relationship("Thought")

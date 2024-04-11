@@ -47,3 +47,19 @@ def create_report(user_id, content, uuid):
     }
     db.reports.insert_one(new_report)
     return new_report
+
+def get_or_create_document(user_id, content, uuid):
+    mongo_client = MongoClient(config('MONGODB_CONNECTION_STRING'))
+    db = mongo_client.myaicofounder
+    existing_doc = db.documents.find_one({"userId": user_id, "uuid": uuid})
+    if existing_doc:
+        return existing_doc
+    else:
+        new_doc = {
+            "userId": user_id,
+            "content": content,
+            "uuid": uuid,
+            "createdAt": datetime.now()
+        }
+        db.documents.insert_one(new_doc)
+        return new_doc
