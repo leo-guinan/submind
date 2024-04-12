@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -6,7 +7,7 @@ from decouple import config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from submind.models import Submind, SubmindSchedule
+from submind.models import Submind, SubmindSchedule, User
 from submind.new_answers import pull_new_answers
 from submind.research import update_research
 from submind.twitter_style import twitter_style_submind_run
@@ -51,6 +52,9 @@ def main(schedule: Optional[Schedule] = typer.Option(Schedule.daily)):
 
     elif schedule == Schedule.instant:
         all_subminds = session.query(Submind).filter(Submind.schedule == SubmindSchedule.INSTANT).all()
+        current_access = session.query(User).filter(User.instantAccessUntil > datetime.now()).all()
+        for user in current_access:
+            all_subminds.extend(session.query(Submind).filter(Submind.ownerId == user.id).all())
         for submind in all_subminds:
             twitter_style_submind_run(submind, session)
 

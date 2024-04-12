@@ -36,10 +36,10 @@ question_research_table = Table('_QuestionToResearch', Base.metadata,
 
 
 class Account(Base):
-    __tablename__ = 'account'
+    __tablename__ = 'Account'
 
     id = Column(String, primary_key=True)
-    userId = Column(String, ForeignKey('user.id', ondelete='CASCADE'))
+    userId = Column(String, ForeignKey('User.id', ondelete='CASCADE'))
     type = Column(String)
     provider = Column(String)
     providerAccountId = Column(String)
@@ -63,14 +63,14 @@ class Session(Base):
 
     id = Column(String, primary_key=True)
     sessionToken = Column(String, unique=True)
-    userId = Column(String, ForeignKey('user.id', ondelete='CASCADE'))
+    userId = Column(String, ForeignKey('User.id', ondelete='CASCADE'))
     expires = Column(DateTime)
 
     user = relationship("User", back_populates="sessions")
 
 
 class User(Base):
-    __tablename__ = 'user'
+    __tablename__ = 'User'
 
     id = Column(String, primary_key=True)
     createdAt = Column(DateTime)
@@ -81,6 +81,7 @@ class User(Base):
     role = Column(String, default="user")
     image = Column(String)
     acceptedPolicy = Column(DateTime)
+    instantAccessUntil = Column(DateTime)
 
     accounts = relationship("Account", back_populates="user")
     sessions = relationship("Session", back_populates="user")
@@ -104,7 +105,7 @@ class Subscription(Base):
     updatedAt = Column(DateTime)
     active = Column(Boolean, default=True)
     stripeSubscriptionId = Column(String)
-    userId = Column(String, ForeignKey('user.id'))
+    userId = Column(String, ForeignKey('User.id'))
     priceId = Column(Integer, ForeignKey('price.id'))
 
     user = relationship("User", back_populates="subscriptions")
@@ -127,7 +128,7 @@ class Community(Base):
     __tablename__ = 'community'
 
     id = Column(Integer, primary_key=True)
-    creatorId = Column(String, ForeignKey('user.id'))
+    creatorId = Column(String, ForeignKey('User.id'))
     name = Column(String)
 
     creator = relationship("User", back_populates="communities")
@@ -138,7 +139,7 @@ class Membership(Base):
     __tablename__ = 'membership'
 
     id = Column(Integer, primary_key=True)
-    memberId = Column(String, ForeignKey('user.id'))
+    memberId = Column(String, ForeignKey('User.id'))
     communityId = Column(Integer, ForeignKey('community.id'))
 
     member = relationship("User", back_populates="memberships")
@@ -151,7 +152,7 @@ class Context(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     details = Column(String)
-    ownerId = Column(String, ForeignKey('user.id'))
+    ownerId = Column(String, ForeignKey('User.id'))
     path = Column(String)
     goal = Column(String)
 
@@ -170,7 +171,7 @@ class Thought(Base):
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
     content = Column(String)
-    ownerId = Column(String, ForeignKey('user.id'))
+    ownerId = Column(String, ForeignKey('User.id'))
     contextId = Column(Integer, ForeignKey('Context.id'))
     uuid = Column(String)
     submindId = Column(Integer, ForeignKey('Submind.id'))
@@ -205,7 +206,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)
-    ownerId = Column(String, ForeignKey('user.id'))
+    ownerId = Column(String, ForeignKey('User.id'))
     uuid = Column(String, unique=True)
 
     owner = relationship("User", back_populates="tasks")
@@ -227,7 +228,7 @@ class Intent(Base):
 
     id = Column(Integer, primary_key=True)
     content = Column(String)
-    ownerId = Column(String, ForeignKey('user.id'))
+    ownerId = Column(String, ForeignKey('User.id'))
     createdAt = Column(DateTime)
     documentUUID = Column(String, unique=True)
     thoughts = relationship("Thought", secondary=intent_thought_table, back_populates="intents")
@@ -259,7 +260,7 @@ class GoogleCalendar(Base):
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
     updatedAt = Column(DateTime)
-    userId = Column(String, ForeignKey('user.id'))
+    userId = Column(String, ForeignKey('User.id'))
     accessToken = Column(String)
     refreshToken = Column(String)
     tokenType = Column(String)
@@ -343,7 +344,7 @@ class Submind(Base):
     name = Column(String)
     description = Column(String)
     lastRun = Column(DateTime)
-    ownerId = Column(String, ForeignKey('user.id'))
+    ownerId = Column(String, ForeignKey('User.id'))
     contextId = Column(Integer, ForeignKey('Context.id'))
     documentUUID = Column(String, unique=True)
     status = Column(Enum('ACTIVE', 'READY', 'COMPLETED', name='submind_status'))
@@ -367,7 +368,7 @@ class Question(Base):
     createdAt = Column(DateTime)
     updatedAt = Column(DateTime)
     content = Column(String)
-    ownerId = Column(String, ForeignKey('user.id'))
+    ownerId = Column(String, ForeignKey('User.id'))
     contextId = Column(Integer, ForeignKey('Context.id'))
     forHuman = Column(Boolean)
     forInternet = Column(Boolean)
