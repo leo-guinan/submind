@@ -56,6 +56,7 @@ def main(schedule: Optional[Schedule] = typer.Option(Schedule.daily)):
         for user in current_access:
             all_subminds.extend(session.query(Submind).filter(Submind.ownerId == user.id).all())
         for submind in all_subminds:
+            print(f"Running submind {submind.id} for user {submind.ownerId}")
             twitter_style_submind_run(submind, session)
 
 
