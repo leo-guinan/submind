@@ -9,11 +9,11 @@ Base = declarative_base()
 
 context_task_table = Table('_ContextToTask', Base.metadata,
                            Column('A', Integer, ForeignKey('Context.id'), primary_key=True),
-                           Column('B', Integer, ForeignKey('task.id'), primary_key=True)
+                           Column('B', Integer, ForeignKey('Task.id'), primary_key=True)
                            )
 
 intent_thought_table = Table('_IntentToThought', Base.metadata,
-                             Column('A', Integer, ForeignKey('intent.id'), primary_key=True),
+                             Column('A', Integer, ForeignKey('Intent.id'), primary_key=True),
                              Column('B', Integer, ForeignKey('Thought.id'), primary_key=True)
                              )
 
@@ -59,7 +59,7 @@ class Account(Base):
 
 
 class Session(Base):
-    __tablename__ = 'session'
+    __tablename__ = 'Session'
 
     id = Column(String, primary_key=True)
     sessionToken = Column(String, unique=True)
@@ -98,7 +98,7 @@ class User(Base):
 
 
 class Subscription(Base):
-    __tablename__ = 'subscription'
+    __tablename__ = 'Subscription'
 
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
@@ -106,14 +106,14 @@ class Subscription(Base):
     active = Column(Boolean, default=True)
     stripeSubscriptionId = Column(String)
     userId = Column(String, ForeignKey('User.id'))
-    priceId = Column(Integer, ForeignKey('price.id'))
+    priceId = Column(Integer, ForeignKey('Price.id'))
 
     user = relationship("User", back_populates="subscriptions")
     price = relationship("Price", back_populates="subscriptions")
 
 
 class VerificationToken(Base):
-    __tablename__ = 'verification_token'
+    __tablename__ = 'VerificationToken'
 
     identifier = Column(String, primary_key=True)
     token = Column(String, unique=True)
@@ -125,7 +125,7 @@ class VerificationToken(Base):
 
 
 class Community(Base):
-    __tablename__ = 'community'
+    __tablename__ = 'Community'
 
     id = Column(Integer, primary_key=True)
     creatorId = Column(String, ForeignKey('User.id'))
@@ -136,11 +136,11 @@ class Community(Base):
 
 
 class Membership(Base):
-    __tablename__ = 'membership'
+    __tablename__ = 'Membership'
 
     id = Column(Integer, primary_key=True)
     memberId = Column(String, ForeignKey('User.id'))
-    communityId = Column(Integer, ForeignKey('community.id'))
+    communityId = Column(Integer, ForeignKey('Community.id'))
 
     member = relationship("User", back_populates="memberships")
     community = relationship("Community", back_populates="memberships")
@@ -186,7 +186,7 @@ class Thought(Base):
     pendingSubminds = relationship("Submind", secondary=pending_thoughts_table, back_populates="pendingThoughts")
 
 class Tool(Base):
-    __tablename__ = 'tool'
+    __tablename__ = 'Tool'
 
     id = Column(Integer, primary_key=True)
     url = Column(String)
@@ -217,17 +217,17 @@ class Task(Base):
 
 
 class TaskDependency(Base):
-    __tablename__ = 'task_dependency'
+    __tablename__ = 'TaskDependency'
 
-    dependentId = Column(Integer, ForeignKey('task.id'), primary_key=True)
-    dependsOnId = Column(Integer, ForeignKey('task.id'), primary_key=True)
+    dependentId = Column(Integer, ForeignKey('Task.id'), primary_key=True)
+    dependsOnId = Column(Integer, ForeignKey('Task.id'), primary_key=True)
 
     dependent = relationship("Task", foreign_keys=[dependentId], backref="dependantOn")
     dependsOn = relationship("Task", foreign_keys=[dependsOnId], backref="dependencies")
 
 
 class Intent(Base):
-    __tablename__ = 'intent'
+    __tablename__ = 'Intent'
 
     id = Column(Integer, primary_key=True)
     content = Column(String)
@@ -240,7 +240,7 @@ class Intent(Base):
 
 
 class EntityId(Base):
-    __tablename__ = 'entity_id'
+    __tablename__ = 'EntityId'
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -248,17 +248,17 @@ class EntityId(Base):
 
 
 class DefaultTool(Base):
-    __tablename__ = 'default_tool'
+    __tablename__ = 'DefaultTool'
 
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
-    toolId = Column(Integer, ForeignKey('tool.id'), unique=True)
+    toolId = Column(Integer, ForeignKey('Tool.id'), unique=True)
 
     tool = relationship("Tool")
 
 
 class GoogleCalendar(Base):
-    __tablename__ = 'google_calendar'
+    __tablename__ = 'GoogleCalendar'
 
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
@@ -280,10 +280,10 @@ class GoogleCalendar(Base):
 
 
 class CalendarEvent(Base):
-    __tablename__ = 'calendar_event'
+    __tablename__ = 'CalendarEvent'
 
     id = Column(Integer, primary_key=True)
-    googleCalendarId = Column(Integer, ForeignKey('google_calendar.id'))
+    googleCalendarId = Column(Integer, ForeignKey('GoogleCalendar.id'))
     googleEventId = Column(String)
     summary = Column(String)
     description = Column(String)
@@ -301,7 +301,7 @@ class CalendarEvent(Base):
 
 
 class Price(Base):
-    __tablename__ = 'price'
+    __tablename__ = 'Price'
 
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
@@ -311,14 +311,14 @@ class Price(Base):
     currency = Column(String)
     interval = Column(String)
     stripePriceId = Column(String)
-    productId = Column(Integer, ForeignKey('product.id'))
+    productId = Column(Integer, ForeignKey('Product.id'))
 
     product = relationship("Product", back_populates="prices")
     subscriptions = relationship("Subscription", back_populates="price")
 
 
 class Product(Base):
-    __tablename__ = 'product'
+    __tablename__ = 'Product'
 
     id = Column(Integer, primary_key=True)
     createdAt = Column(DateTime)
