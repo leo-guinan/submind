@@ -83,10 +83,8 @@ def pull_new_answers(session, submind):
                     chain = prompt | model_4 | output_parser
                     for snippet in data['results']:
                         # remove all timestamps in [] brackets
-                        print(len(snippet['snippet']))
                         cleaned_text = re.sub(r'\[\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}\]', '',
                                               snippet['snippet'])
-                        print(len(cleaned_text))
 
                         current_answer = chain.invoke(
                             {"question": question.question.content,

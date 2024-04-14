@@ -201,7 +201,7 @@ class Tool(Base):
 
 
 class Task(Base):
-    __tablename__ = 'task'
+    __tablename__ = 'Task'
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
