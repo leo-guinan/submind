@@ -139,6 +139,7 @@ def twitter_style_submind_run(submind, session):
             task.createdAt = datetime.now()
             task.updatedAt = datetime.now()
             task.thoughtId = new_thought.id
+            task.uuid = str(uuid.uuid4())
             session.add(task)
             session.commit()
             # Take an action
