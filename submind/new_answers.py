@@ -29,8 +29,11 @@ def pull_new_answers(session, submind):
         response = requests.post(url, json=query, headers=headers)
 
         data = response.json()
-
-        print(f"Found {len(data['results'])} snippets")
+        print(data)
+        if data['status'] != 'Completed':
+            print("Query still running. Skipping")
+            continue
+        # print(f"Found {len(data['results'])} snippets")
 
         ANSWER_TEMPLATE = """You are a recursive answer compiler. Given a question, your answer so far, and a new snippet,
          your job is to revise your answer with the information in the new snippet. 
