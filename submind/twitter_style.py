@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 from submind.documents import get_or_create_document
-from submind.models import Like, Thought
+from submind.models import Like, Thought, Task
 from submind.research import start_research
 
 functions = [
@@ -122,7 +122,25 @@ def twitter_style_submind_run(submind, session):
             session.commit()
 
         elif report['responseType'] == "action":
-            pass
+            new_thought = Thought()
+            new_thought.content = f"Looks like I should take this action: {report['message']}. I am still learning to take actions right now, so I'll make a note of this and come back to it once I know how to do it."
+            new_thought.submindId = submind.id
+            new_thought.contextId = submind.contextId
+            new_thought.uuid = str(uuid.uuid4())
+            new_thought.createdAt = datetime.now()
+            new_thought.parentId = thought.id
+            new_thought.ownerId = submind.ownerId
+            session.add(new_thought)
+            session.commit()
+            task = Task()
+            task.name = report['message']
+            task.submindId = submind.id
+            task.ownerId = submind.ownerId
+            task.createdAt = datetime.now()
+            task.updatedAt = datetime.now()
+            task.thoughtId = new_thought.id
+            session.add(task)
+            session.commit()
             # Take an action
 
         submind.pendingThoughts.remove(thought)

@@ -176,7 +176,7 @@ class Thought(Base):
     uuid = Column(String)
     submindId = Column(Integer, ForeignKey('Submind.id'))
     parentId = Column(Integer, ForeignKey('Thought.id'))
-
+    tasks = relationship("Task", back_populates="thought")
     parent = relationship("Thought", remote_side=[id], backref="children")
     owner = relationship("User", back_populates="thoughts")
     context = relationship("Context", back_populates="thoughts")
@@ -208,9 +208,12 @@ class Task(Base):
     description = Column(String)
     ownerId = Column(String, ForeignKey('User.id'))
     uuid = Column(String, unique=True)
-
+    submindId = Column(Integer, ForeignKey('Submind.id'))
+    thoughtId = Column(Integer, ForeignKey('Thought.id'))
     owner = relationship("User", back_populates="tasks")
     contexts = relationship("Context", secondary=context_task_table, back_populates="tasks")
+    submind = relationship("Submind", back_populates="tasks")
+    thought = relationship("Thought", back_populates="tasks")
 
 
 class TaskDependency(Base):
@@ -355,6 +358,7 @@ class Submind(Base):
     founderUUID = Column(String)
     valuesUUID = Column(String)
     schedule = Column(Enum(SubmindSchedule))
+    tasks = relationship("Task", back_populates="submind")
     thoughts = relationship("Thought", back_populates="submind")
     relatedThoughts = relationship("Thought", secondary=related_thoughts_table, back_populates="relatedSubminds")
     pendingThoughts = relationship("Thought", secondary=pending_thoughts_table, back_populates="pendingSubminds")

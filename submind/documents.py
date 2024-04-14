@@ -8,7 +8,16 @@ from pymongo import MongoClient
 def get_document(document_uuid, user_id):
     mongo_client = MongoClient(config('MONGODB_CONNECTION_STRING'))
     db = mongo_client.myaicofounder
-    return db.documents.find_one({"uuid": document_uuid, "userId": user_id})
+    existing_doc = db.documents.find_one({"uuid": document_uuid, "userId": user_id})
+    if not existing_doc:
+        db.documents.insert_one({
+            "userId": user_id,
+            "content": "",
+            "uuid": document_uuid,
+            "createdAt": datetime.now()
+        })
+        existing_doc = db.documents.find_one({"uuid": document_uuid, "userId": user_id})
+    return existing_doc
 
 def update_document(document_uuid, content):
     mongo_client = MongoClient(config('MONGODB_CONNECTION_STRING'))

@@ -16,7 +16,7 @@ def pull_new_answers(session, submind):
 
     unanswered_questions = session.query(Answer).filter(
         and_(or_(Answer.content == '', Answer.content.is_(None)), Answer.submindId == submind.id)).all()
-
+    print(f'Unanswered questions for submind {submind.id}: {len(unanswered_questions)}')
     for question in unanswered_questions:
         url = f'{config("API_URL")}podcast/query/'
         query = {'query_id': question.requestId}
@@ -29,6 +29,8 @@ def pull_new_answers(session, submind):
         response = requests.post(url, json=query, headers=headers)
 
         data = response.json()
+
+        print(f"Found {len(data['results'])} snippets")
 
         ANSWER_TEMPLATE = """You are a recursive answer compiler. Given a question, your answer so far, and a new snippet,
          your job is to revise your answer with the information in the new snippet. 
@@ -53,10 +55,7 @@ def pull_new_answers(session, submind):
             chain = prompt | model_claude | output_parser
             for snippet in data['results']:
                 # remove all timestamps in [] brackets
-                print(len(snippet['snippet']))
                 cleaned_text = re.sub(r'\[\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}\]', '', snippet['snippet'])
-                print(len(cleaned_text))
-
                 current_answer = chain.invoke(
                     {"question": question.question.content,
                      "answer": current_answer,
@@ -65,6 +64,7 @@ def pull_new_answers(session, submind):
         except Exception as e:
             try:
                 print("Failed to get answer from claude-3-haiku-20240307, using gpt-3.5-turbo")
+                print(e)
                 chain = prompt | model_35 | output_parser
                 for snippet in data['results']:
                     # remove all timestamps in [] brackets
@@ -79,6 +79,7 @@ def pull_new_answers(session, submind):
             except Exception as e2:
                 try:
                     print("Failed to get answer from gpt-3.5-turbo, using gpt-4-turbo")
+                    print(e2)
                     chain = prompt | model_4 | output_parser
                     for snippet in data['results']:
                         # remove all timestamps in [] brackets
@@ -93,12 +94,12 @@ def pull_new_answers(session, submind):
                              "snippet": cleaned_text
                              })
                 except Exception as e3:
-                    print(e3)
                     print("Failed to get answer")
+                    print(e3)
                     continue
             question.content = current_answer
         session.add(question)
         session.commit()
         new_answers.append(f'{question.question.content}\n{current_answer}')
-
+    print(f'New answers for submind {submind.id}: {len(new_answers)}')
     return new_answers
