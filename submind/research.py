@@ -179,14 +179,10 @@ def start_research(submind, thought, message, session):
 def update_research(session):
     research = session.query(Research).filter(Research.completed == False).all()
     for item in research:
-        all_answered = True
-        for question in item.questions:
-            for answer in question.answers:
-                if not answer.content:
-                    all_answered = False
-                    break
+        all_answered = all(any(answer.content for answer in question.answers if answer.content) for question in item.questions if not question.error)
         if all_answered:
             complete_research(session, item)
+
 
 
 def complete_research(session, research):
@@ -200,18 +196,19 @@ def complete_research(session, research):
     values = get_document(submind.valuesUUID, submind.ownerId)
     founder = get_document(submind.founderUUID, submind.ownerId)
 
-    print("Questions: ", research.questions)
+    combined = ""
+    for question in research.questions:
+        combined += f"{question.content}:\n"
+        for answer in question.answers:
+            combined += f"{answer.content}\n"
 
-    print("Answers: ", research.questions[0].answers)
-
-    research_content = map(lambda question: f"{question.content}:" + "\n".join(map(lambda answer: answer.content, question.answers)), research.questions)
-
+    # research_content = map(lambda question: f"{question.content}:" + "\n".join(map(lambda answer: answer.content, question.answers)), research.questions)
 
     response = chain.invoke(
         {"founder": founder['content'],
          "values": values['content'],
          "mind": mind['content'],
-         "research": research_content})
+         "research": combined})
     print(response)
     research.response = response
     research.completed = True

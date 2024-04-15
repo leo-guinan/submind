@@ -382,6 +382,7 @@ class Question(Base):
     context = relationship("Context")
     research = relationship("Research", secondary=question_research_table, back_populates="questions")
     answers = relationship("Answer", back_populates="question")
+    error = Column(String)
 class Answer(Base):
     __tablename__ = 'Answer'
 
