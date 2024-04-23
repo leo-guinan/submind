@@ -440,3 +440,15 @@ class Research(Base):
     answers = relationship("Answer", back_populates="research")
     response = Column(String)
     completed = Column(Boolean, default=False)
+
+class SubmindTask(Base):
+    __tablename__ = 'SubmindTask'
+
+    id = Column(Integer, primary_key=True)
+    createdAt = Column(DateTime)
+    updatedAt = Column(DateTime)
+    submindId = Column(Integer, ForeignKey('Submind.id'))
+    taskId = Column(Integer, ForeignKey('Task.id'))
+
+    submind = relationship("Submind")
+    task = relationship("Task")

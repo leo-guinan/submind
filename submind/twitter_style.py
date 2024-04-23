@@ -7,8 +7,10 @@ from langchain_core.output_parsers.openai_functions import JsonKeyOutputFunction
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
+from submind.action import take_action
 from submind.documents import get_or_create_document
 from submind.models import Like, Thought, Task
+from submind.reflect import reflect
 from submind.research import start_research
 
 functions = [
@@ -70,9 +72,9 @@ SUBMIND_INITIAL_PROMPT = """
     
     Based on this thought, your shared values, and your current state of mind, what do you think your next action should be?
     
-    You can research something to find out more about it, ask a question to clarify something, or take an action to help the founder.
+    You can research something to find out more about it, ask a question to clarify something, take an action to help the founder, or reflect on what you currently know.
     
-    Respond with one of these options: research, question, action, and a message that explains your choice. Return json with fields "type" and "message".
+    Respond with one of these options: (research, question, action, reflect), and a message that explains your choice. Return json with fields "type" and "message".
 """
 
 
@@ -122,27 +124,10 @@ def twitter_style_submind_run(submind, session):
             session.commit()
 
         elif report['responseType'] == "action":
-            new_thought = Thought()
-            new_thought.content = f"Looks like I should take this action: {report['message']}. I am still learning to take actions right now, so I'll make a note of this and come back to it once I know how to do it."
-            new_thought.submindId = submind.id
-            new_thought.contextId = submind.contextId
-            new_thought.uuid = str(uuid.uuid4())
-            new_thought.createdAt = datetime.now()
-            new_thought.parentId = thought.id
-            new_thought.ownerId = submind.ownerId
-            session.add(new_thought)
-            session.commit()
-            task = Task()
-            task.name = report['message']
-            task.submindId = submind.id
-            task.ownerId = submind.ownerId
-            task.createdAt = datetime.now()
-            task.updatedAt = datetime.now()
-            task.thoughtId = new_thought.id
-            task.uuid = str(uuid.uuid4())
-            session.add(task)
-            session.commit()
+            take_action(submind, session, thought, report['message'])
             # Take an action
+        else:
+            reflect(submind, session, thought, report['message'])
 
         submind.pendingThoughts.remove(thought)
         session.add(submind)
@@ -150,4 +135,5 @@ def twitter_style_submind_run(submind, session):
 
 
     # {"type": "question", "message": "Could you please clarify what specific functionality or feature you would like to be implemented or improved in our application?"}
+
 
